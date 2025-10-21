@@ -1,3 +1,4 @@
 emby/embyserver:latest
 traefik
 photoprism/photoprism:latest
+mariadb:10.11
