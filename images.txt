@@ -4,6 +4,7 @@
 #mariadb:10.11
 #docker:29.0.2-dind-alpine3.22
 #docker:29.0.2-alpine3.22
-kindest/node:v1.35.0
-kindest/node:v1.31.14
-kindest/node:v1.34.0
+#kindest/node:v1.35.0
+#kindest/node:v1.31.14
+#kindest/node:v1.34.0
+postgres:15-alpine
