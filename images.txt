@@ -7,4 +7,6 @@
 #kindest/node:v1.35.0
 #kindest/node:v1.31.14
 #kindest/node:v1.34.0
-postgres:15-alpine
+#postgres:15-alpine
+hlohaus789/g4f:latest
+hlohaus789/g4f:latest-slim
