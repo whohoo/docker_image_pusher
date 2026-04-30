@@ -10,4 +10,4 @@
 #postgres:15-alpine
 #hlohaus789/g4f:latest
 #--platform=linux/arm64 hlohaus789/g4f:latest-slim
---platform=linux/arm64 whohoo/mcp-server-weibo
+--platform=linux/arm64 whohoo/mcp-server-weibo:latest
