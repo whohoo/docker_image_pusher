@@ -137,9 +137,7 @@ jobs:
                 docker buildx imagetools create -t "$new_image" "$image"
             else
                 echo "Syncing specific platforms [$platform]: $image -> $new_image"
-                docker buildx build --platform "$platform" -t "$new_image" --push - <<EOF
-FROM $image
-EOF
+                echo "FROM $image" | docker buildx build --platform "$platform" -t "$new_image" --push -
             fi
 
             echo "开始清理磁盘空间"

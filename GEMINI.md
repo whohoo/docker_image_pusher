@@ -46,8 +46,8 @@ The sync process is triggered by:
 
 ## Image Naming Logic
 The workflow handles potential conflicts and multi-architecture requirements:
-- **Multi-arch**: If `--platform` is specified, the architecture (e.g., `linux_arm64_`) is prepended to the Aliyun image name.
-- **Name Collisions**: If multiple images in `images.txt` have the same name but different namespaces (e.g., `xhofe/alist` and `xiaoyaliu/alist`), the original namespace is prepended to the Aliyun image name.
+- **Multi-arch**: Supports syncing multiple platforms (e.g., `linux/amd64`, `linux/arm64`) to a single image tag using Docker Manifests. If no platform is specified, all available platforms from the source are synced.
+- **Name Collisions**: If multiple images in `images.txt` have the same name but different namespaces (e.g., `xhofe/alist` and `xiaoyaliu/alist`), the original namespace is prepended to the Aliyun image name (e.g., `xhofe_alist`).
 
 ## Disk Space Management
 The workflow includes a step to maximize build space using `easimon/maximize-build-space` to accommodate large images (up to 40GB). It also proactively cleans up local Docker images after each push to avoid running out of disk space during a batch run.
