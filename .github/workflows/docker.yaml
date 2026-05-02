@@ -106,17 +106,9 @@ jobs:
                 continue
             fi
         
-            echo "docker pull $line"
-            docker pull $line
             platform=$(echo "$line" | awk -F'--platform[ =]' '{if (NF>1) print $2}' | awk '{print $1}')
             echo "platform is $platform"
-            # 如果存在架构信息 将架构信息拼到镜像名称前面
-            if [ -z "$platform" ]; then
-                platform_prefix=""
-            else
-                platform_prefix="${platform//\//_}_"
-            fi
-            echo "platform_prefix is $platform_prefix"
+            
             # 获取镜像的完整名称，例如kasmweb/nginx:1.25.3（命名空间/镜像名:版本号）
             image=$(echo "$line" | awk '{print $NF}')
 
@@ -138,17 +130,24 @@ jobs:
             
             # 将@sha256:等字符删除
             image_name_tag="${image_name_tag%%@*}"
-            new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$platform_prefix$name_space_prefix$image_name_tag"
-            echo "docker tag $image $new_image"
-            docker tag $image $new_image
-            echo "docker push $new_image"
-            docker push $new_image
+            new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$name_space_prefix$image_name_tag"
+            
+            if [ -z "$platform" ]; then
+                echo "Syncing ALL platforms: $image -> $new_image"
+                docker buildx imagetools create -t "$new_image" "$image"
+            else
+                echo "Syncing specific platforms [$platform]: $image -> $new_image"
+                docker buildx build --platform "$platform" -t "$new_image" --push - <<EOF
+FROM $image
+EOF
+            fi
+
             echo "开始清理磁盘空间"
             echo "=============================================================================="
             df -hT
             echo "=============================================================================="
-            docker rmi $image
-            docker rmi $new_image
+            # 清理 Buildx 缓存
+            docker buildx prune -f
             echo "磁盘空间清理完毕"
             echo "=============================================================================="
             df -hT
