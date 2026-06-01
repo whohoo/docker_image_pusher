@@ -58,46 +58,6 @@ jobs:
     - name: Build and push image Aliyun
       run: |
         docker login -u $ALIYUN_REGISTRY_USER -p $ALIYUN_REGISTRY_PASSWORD $ALIYUN_REGISTRY
-        # 数据预处理,判断镜像是否重名
-        declare -A duplicate_images
-        declare -A temp_map
-        while IFS= read -r line || [ -n "$line" ]; do
-            # 忽略空行与注释
-            [[ -z "$line" ]] && continue
-            if echo "$line" | grep -q '^\s*#'; then
-                continue
-            fi
-            
-            # 获取镜像的完整名称，例如kasmweb/nginx:1.25.3（命名空间/镜像名:版本号）
-            image=$(echo "$line" | awk '{print $NF}')
-            # 将@sha256:等字符删除
-            image="${image%%@*}"
-            echo "image $image"
-            # 获取镜像名:版本号  例如nginx:1.25.3
-            image_name_tag=$(echo "$image" | awk -F'/' '{print $NF}')
-            echo "image_name_tag $image_name_tag"
-            # 获取命名空间 例如kasmweb,  这里有种特殊情况 docker.io/nginx，把docker.io当成命名空间，也OK
-            name_space=$(echo "$image" | awk -F'/' '{if (NF==3) print $2; else if (NF==2) print $1; else print ""}')
-            echo "name_space: $name_space"
-            # 这里不要是空值影响判断
-            name_space="${name_space}_"
-            # 获取镜像名例如nginx
-            image_name=$(echo "$image_name_tag" | awk -F':' '{print $1}')
-            echo "image_name: $image_name"
-            
-            # 如果镜像存在于数组中，则添加temp_map
-            if [[ -n "${temp_map[$image_name]}" ]]; then
-                 # 如果temp_map已经存在镜像名，判断是不是同一命名空间
-                 if [[ "${temp_map[$image_name]}" != $name_space  ]]; then
-                    echo "duplicate image name: $image_name"
-                    duplicate_images[$image_name]="true"
-                 fi
-            else
-                # 存镜像的命名空间
-                temp_map[$image_name]=$name_space
-            fi       
-        done < images.txt
-        
         
         while IFS= read -r line || [ -n "$line" ]; do
             # 忽略空行与注释
@@ -106,49 +66,84 @@ jobs:
                 continue
             fi
         
-            platform=$(echo "$line" | awk -F'--platform[ =]' '{if (NF>1) print $2}' | awk '{print $1}')
-            echo "platform is $platform"
+            echo "Processing line: $line"
             
-            # 获取镜像的完整名称，例如kasmweb/nginx:1.25.3（命名空间/镜像名:版本号）
-            image=$(echo "$line" | awk '{print $NF}')
+            # 解析 platform
+            platform=""
+            if [[ "$line" == *"--platform="* ]]; then
+                tmp_p="${line#*--platform=}"
+                platform="${tmp_p%% *}"
+                line="${line/--platform=$platform/}"
+            fi
 
-            # 获取 镜像名:版本号  例如nginx:1.25.3
-            image_name_tag=$(echo "$image" | awk -F'/' '{print $NF}')
-            # 获取命名空间 例如kasmweb  这里有种特殊情况 docker.io/nginx，把docker.io当成命名空间，也OK
-            name_space=$(echo "$image" | awk -F'/' '{if (NF==3) print $2; else if (NF==2) print $1; else print ""}')
-            # 获取镜像名例  例如nginx
-            image_name=$(echo "$image_name_tag" | awk -F':' '{print $1}')
-        
-            name_space_prefix=""
-            # 如果镜像名重名
-            if [[ -n "${duplicate_images[$image_name]}" ]]; then
-               #如果命名空间非空，将命名空间加到前缀
-               if [[ -n "${name_space}" ]]; then
-                  name_space_prefix="${name_space}_"
-               fi
+            # 移除多余空格并解析 source_image 和 target_name
+            line=$(echo "$line" | xargs)
+            read -r source_image target_name <<< "$line"
+            
+            # 清理 source_image (移除 @sha256: 等)
+            source_image="${source_image%%@*}"
+            
+            # 自动生成新镜像名称的逻辑
+            image_name_tag="${source_image##*/}"
+            
+            if [[ -n "$target_name" ]]; then
+                # 如果显式指定了目标名称，则使用它
+                # 检查 target_name 是否包含标签，如果没有则补上源镜像的标签
+                if [[ "$target_name" != *":"* && "$image_name_tag" == *":"* ]]; then
+                    tag="${image_name_tag#*:}"
+                    final_name_tag="$target_name:$tag"
+                else
+                    final_name_tag="$target_name"
+                fi
+            else
+                # 自动生成逻辑
+                if [[ "$source_image" == *"/"* ]]; then
+                    namespace_path="${source_image%/*}"
+                    # 移除域名
+                    first_part="${namespace_path%%/*}"
+                    if [[ "$first_part" == *"."* ]]; then
+                        namespace_no_domain="${namespace_path#*/}"
+                    else
+                        namespace_no_domain="$namespace_path"
+                    fi
+                    
+                    # 判断是否为官方镜像
+                    if [[ "$namespace_path" == "docker.io/library" || "$namespace_path" == "library" || "$namespace_no_domain" == "library" ]]; then
+                        final_name_tag="$image_name_tag"
+                    else
+                        # 处理第三方镜像，将命名空间路径转换为前缀
+                        namespace_prefix="${namespace_no_domain//\//_}"
+                        if [[ -n "$namespace_prefix" && "$namespace_prefix" != "$namespace_path" ]]; then
+                             final_name_tag="${namespace_prefix}_${image_name_tag}"
+                        elif [[ "$first_part" == *"."* && "$namespace_path" == "$first_part" ]]; then
+                             # 只有域名的情况 (例如 gcr.io/pause)
+                             final_name_tag="$image_name_tag"
+                        else
+                             final_name_tag="${namespace_path//\//_}_${image_name_tag}"
+                        fi
+                    fi
+                else
+                    # 官方镜像 (无命名空间)
+                    final_name_tag="$image_name_tag"
+                fi
             fi
             
-            # 将@sha256:等字符删除
-            image_name_tag="${image_name_tag%%@*}"
-            new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$name_space_prefix$image_name_tag"
+            new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$final_name_tag"
             
             if [ -z "$platform" ]; then
-                echo "Syncing ALL platforms: $image -> $new_image"
-                docker buildx imagetools create -t "$new_image" "$image"
+                echo "Syncing ALL platforms: $source_image -> $new_image"
+                docker buildx imagetools create -t "$new_image" "$source_image"
             else
-                echo "Syncing specific platforms [$platform]: $image -> $new_image"
-                echo "FROM $image" | docker buildx build --platform "$platform" -t "$new_image" --push -
+                echo "Syncing specific platforms [$platform]: $source_image -> $new_image"
+                echo "FROM $source_image" | docker buildx build --platform "$platform" -t "$new_image" --push -
             fi
 
             echo "开始清理磁盘空间"
             echo "=============================================================================="
-            df -hT
-            echo "=============================================================================="
             # 清理 Buildx 缓存
             docker buildx prune -f
+            docker image prune -a -f
             echo "磁盘空间清理完毕"
-            echo "=============================================================================="
-            df -hT
             echo "=============================================================================="     
             
         done < images.txt

@@ -28,11 +28,19 @@ The following secrets must be configured in your GitHub repository (`Settings ->
 
 ## Adding Images
 Modify `images.txt` to include the images you want to sync.
-- **Format**: `[--platform=<platform>] <image>[:tag]`
+- **Format**: `[--platform=<platform>] <source_image> [<target_name>]`
+- **Rules**:
+  - **Source Image**: The full image name (e.g., `nginx:latest`, `xhofe/alist:latest`).
+  - **Target Name (Optional)**: If provided, this name will be used in Aliyun ACR. If you omit the tag in `target_name`, the source tag will be appended automatically.
+  - **Auto-Naming**: If `target_name` is NOT provided:
+    - Official images (`library/` or no namespace) keep their original name.
+    - Third-party images automatically get their namespace as a prefix (e.g., `xhofe/alist` -> `xhofe_alist`). This prevents naming collisions and improves organization.
 - **Examples**:
-  - `nginx:latest`
-  - `--platform=linux/arm64 alpine:3.18`
-  - `gcr.io/google-containers/pause:3.9`
+  - `nginx:latest` -> `nginx:latest`
+  - `xhofe/alist:latest` -> `xhofe_alist:latest` (Auto-prefixed)
+  - `gcr.io/kaniko-project/executor:v1.14.0` -> `kaniko-project_executor:v1.14.0`
+  - `xhofe/alist:latest my-alist` -> `my-alist:latest` (Custom name)
+  - `--platform=linux/arm64 alpine:3.18 alpine-arm64` -> `alpine-arm64:3.18`
 
 ## Execution
 The sync process is triggered by:

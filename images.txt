@@ -13,3 +13,4 @@
 #whohoo/mcp-server-weibo:latest
 #node:22-bookworm-slim
 gitea/act_runner:latest
+catthehacker/ubuntu:act-latest
