@@ -8,7 +8,8 @@
 #kindest/node:v1.31.14
 #kindest/node:v1.34.0
 #postgres:15-alpine
-hlohaus789/g4f:latest-slim
+#hlohaus789/g4f:latest-slim
 #--platform=linux/arm64 hlohaus789/g4f:latest-slim
 #whohoo/mcp-server-weibo:latest
 #node:22-bookworm-slim
+gitea/act_runner:latest
