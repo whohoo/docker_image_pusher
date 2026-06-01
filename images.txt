@@ -12,5 +12,5 @@
 #--platform=linux/arm64 hlohaus789/g4f:latest-slim
 #whohoo/mcp-server-weibo:latest
 #node:22-bookworm-slim
-gitea/act_runner:latest
+#gitea/act_runner:latest
 catthehacker/ubuntu:act-latest
