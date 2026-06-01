@@ -16,6 +16,7 @@
 ## 使用方式
 
 ### 1. 配置阿里云
+
 1. 登录 [阿里云容器镜像服务](https://cr.console.aliyun.com/)。
 2. 启用个人实例，创建一个**命名空间**（`ALIYUN_NAME_SPACE`）。
 3. 在“访问凭证”中设置固定密码，并获取以下信息：
@@ -24,6 +25,7 @@
    - 仓库地址 (`ALIYUN_REGISTRY`)：例如 `registry.cn-hangzhou.aliyuncs.com`
 
 ### 2. Fork 本项目
+
 1. Fork 本项目到你的账号下。
 2. 进入 `Settings -> Secrets and variables -> Actions -> New Repository secret`。
 3. 配置以下四个环境变量：
@@ -33,12 +35,15 @@
    - `ALIYUN_REGISTRY_PASSWORD`
 
 ### 3. 添加镜像
+
 打开 `images.txt` 文件，添加你想要的镜像。
+
 - **默认全量同步**：直接写镜像名，会同步该 Tag 下的所有平台架构。
 - **指定平台同步**：使用 `--platform` 参数限制同步的架构（多个用逗号隔开）。
 - **注释**：使用 `#` 开头。
 
 **示例：**
+
 ```text
 # 同步所有架构 (linux/amd64, linux/arm64, etc.)
 nginx:latest
@@ -49,6 +54,7 @@ nginx:latest
 # 同步特定私库镜像
 gcr.io/kaniko-project/executor:latest
 ```
+
 文件提交后，将自动触发同步流程。
 
 ---
@@ -67,13 +73,19 @@ gcr.io/kaniko-project/executor:latest
 | `linux/ppc64le` | PowerPC 64 位架构 |
 | `linux/s390x` | IBM System z 架构 |
 
+### 查看镜像支持的平台
+
+`docker buildx imagetools inspect your-registry.com/your-image:tag`
+
 ### 错误处理
+
 - **平台不存在**：如果指定的平台在源仓库中不存在，脚本会**报错并停止执行**。
 - **部分存在**：如果你指定了多个平台（如 `amd64,arm64`），但源仓库只存在其中一个，脚本同样会**报错退出**，不会部分同步。
 
 ---
 
 ## 使用镜像
+
 同步成功后，在阿里云后台将镜像仓库设为“公开”，即可直接拉取。
 
 ```bash
@@ -84,14 +96,19 @@ docker pull registry.cn-hangzhou.aliyuncs.com/shrimp-images/node:22-bookworm-sli
 ---
 
 ## 镜像重名处理
+
 如果 `images.txt` 中存在同名但不同命名空间的镜像，例如：
+
 ```text
 xhofe/alist
 xiaoyaliu/alist
 ```
+
 脚本会自动在阿里云镜像名中添加源命名空间作为前缀，变为：
+
 - `.../xhofe_alist:latest`
 - `.../xiaoyaliu_alist:latest`
 
 ## 定时执行
+
 修改 `.github/workflows/docker.yaml` 文件中的 `on:` 部分，添加 `schedule` 即可实现自动更新。
