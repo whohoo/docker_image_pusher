@@ -15,13 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        node_version: [22, 24]
+        os_type: [slim, alpine]
         include:
-          - variant: slim
+          - os_type: slim
             file: ./dockerfiles/node-docker-slim
-            suffix: -slim
-          - variant: alpine
+          - os_type: alpine
             file: ./dockerfiles/node-docker-alpine
-            suffix: -alpine
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -50,17 +50,20 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}},suffix=${{ matrix.suffix }}
-            type=semver,pattern={{major}}.{{minor}},suffix=${{ matrix.suffix }}
-            type=raw,value=latest${{ matrix.suffix }}
-            # 如果是 slim 版本，额外打一个不带后缀的 latest 标签作为默认版本
-            type=raw,value=latest,enable=${{ matrix.variant == 'slim' }}
+            # 生成如 24-slim, 22-alpine 等标签
+            type=raw,value=${{ matrix.node_version }}-${{ matrix.os_type }}
+            # 为每个 OS 类型生成不带 Node 版本的 latest 标签 (如 latest-slim 指向最新的 node-24)
+            type=raw,value=latest-${{ matrix.os_type }},enable=${{ matrix.node_version == '24' }}
+            # 最终的全局 latest 标签 (指向 node-24-slim)
+            type=raw,value=latest,enable=${{ matrix.node_version == '24' && matrix.os_type == 'slim' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.file }}
+          build-args: |
+            NODE_TAG=${{ matrix.node_version }}-${{ matrix.os_type }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
