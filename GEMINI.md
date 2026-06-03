@@ -44,7 +44,7 @@ Modify `images.txt` to include the images you want to sync.
 
 ## Execution
 The sync process is triggered by:
-1.  **Push**: Any push to the `main` branch.
+1.  **Push**: Any push to the `sync` branch.
 2.  **Manual Trigger**: Using the `workflow_dispatch` button in the GitHub Actions tab.
 3.  **Schedule (Optional)**: Can be configured in `docker.yaml` via `schedule`.
 
@@ -59,3 +59,4 @@ The workflow handles potential conflicts and multi-architecture requirements:
 
 ## Disk Space Management
 The workflow includes a step to maximize build space using `easimon/maximize-build-space` to accommodate large images (up to 40GB). It also proactively cleans up local Docker images after each push to avoid running out of disk space during a batch run.
+atch run.
