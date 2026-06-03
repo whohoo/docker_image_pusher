@@ -7,7 +7,7 @@
 - **极速分发**：利用 Docker Buildx 引擎，直接在仓库间同步 Manifest，无需下载镜像层到本地，极大节省时间和空间。
 - **超大镜像**：支持最大 40GB 的大型镜像同步。
 
-视频教程：https://www.bilibili.com/video/BV1Zn4y19743/
+[视频教程：](https://www.bilibili.com/video/BV1Zn4y19743/)
 
 作者：**[技术爬爬虾](https://github.com/tech-shrimp/me)**
 
