@@ -8,4 +8,5 @@
 #--platform=linux/arm64 hlohaus789/g4f:latest-slim
 #whohoo/mcp-server-weibo:latest
 #catthehacker/ubuntu:act-latest
-whohoo/node-docker
+whohoo/node-docker:24-alpine
+whohoo/node-docker:24-slim
