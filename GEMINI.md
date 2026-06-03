@@ -8,9 +8,11 @@
 
 ## Architecture
 The project is minimalist and configuration-driven:
-- `.github/workflows/docker.yaml`: Contains the core logic for processing images.
+- `.github/workflows/docker-sync.yaml`: Core logic for syncing images from `images.txt`.
+- `.github/workflows/docker-build.yaml`: Workflow for building custom Node.js images with Docker CLI.
 - `images.txt`: A list of source images to be synced.
-- `doc/`: Contains visual guides for setup.
+- `dockerfiles/`: Contains Dockerfiles for custom image variants (slim, alpine).
+- `doc/`: Contains visual guides and specific READMEs for custom images.
 
 ---
 
@@ -59,4 +61,6 @@ The workflow handles potential conflicts and multi-architecture requirements:
 
 ## Disk Space Management
 The workflow includes a step to maximize build space using `easimon/maximize-build-space` to accommodate large images (up to 40GB). It also proactively cleans up local Docker images after each push to avoid running out of disk space during a batch run.
+atch run.
+ild space using `easimon/maximize-build-space` to accommodate large images (up to 40GB). It also proactively cleans up local Docker images after each push to avoid running out of disk space during a batch run.
 atch run.

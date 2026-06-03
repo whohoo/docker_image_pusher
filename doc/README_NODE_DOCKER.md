@@ -22,7 +22,7 @@ All images are built for multiple architectures:
 
 ## Features
 
-- **Pre-installed Docker CLI**: Run `docker ps`, `docker build`, etc., directly from your Node.js environment.
+- **Pre-installed Docker CLI & Buildx**: Run `docker ps`, `docker build`, and `docker buildx` directly from your Node.js environment.
 - **Optimized Size**: Uses `slim` and `alpine` variants to minimize footprint.
 - **Security**: Regularly updated base images.
 

@@ -6,6 +6,7 @@
 - **全量同步**：默认同步源仓库所有可用的平台镜像。
 - **极速分发**：利用 Docker Buildx 引擎，直接在仓库间同步 Manifest，无需下载镜像层到本地，极大节省时间和空间。
 - **超大镜像**：支持最大 40GB 的大型镜像同步。
+- **自定义镜像构建**：内置 Node.js + Docker CLI 镜像构建流水线，支持多版本（22/24）与多架构（AMD64/ARM64）。
 
 [视频教程：](https://www.bilibili.com/video/BV1Zn4y19743/)
 
@@ -87,6 +88,32 @@ gcr.io/kaniko-project/executor:latest
 ## 使用镜像
 
 同步成功后，在阿里云后台将镜像仓库设为“公开”，即可直接拉取。
+
+```bash
+# 格式: docker pull [ALIYUN_REGISTRY]/[ALIYUN_NAME_SPACE]/[镜像名]:[标签]
+docker pull registry.cn-hangzhou.aliyuncs.com/shrimp-images/node:22-bookworm-slim
+```
+
+---
+
+## 镜像重名处理
+
+如果 `images.txt` 中存在同名但不同命名空间的镜像，例如：
+
+```text
+xhofe/alist
+xiaoyaliu/alist
+```
+
+脚本会自动在阿里云镜像名中添加源命名空间作为前缀，变为：
+
+- `.../xhofe_alist:latest`
+- `.../xiaoyaliu_alist:latest`
+
+## 定时执行
+
+修改 `.github/workflows/docker.yaml` 文件中的 `on:` 部分，添加 `schedule` 即可实现自动更新。
+��“公开”，即可直接拉取。
 
 ```bash
 # 格式: docker pull [ALIYUN_REGISTRY]/[ALIYUN_NAME_SPACE]/[镜像名]:[标签]
