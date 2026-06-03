@@ -1,0 +1,14 @@
+ARG NODE_TAG=24-alpine
+FROM node:${NODE_TAG}
+
+# 声明维护者信息（可选）
+LABEL maintainer="whohoo.ho@gmail.com"
+
+# 安装 Docker 客户端及常用工具
+# Alpine 仓库直接提供 docker-cli，安装过程比 Debian 更加精简
+RUN apk add --no-cache \
+    ca-certificates \
+    curl \
+    docker-cli
+
+# Alpine 的 apk --no-cache 会自动清理缓存，无需手动执行 clean

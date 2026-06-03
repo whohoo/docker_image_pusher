@@ -7,7 +7,7 @@ on:
 
 env:
   # 你在 Docker Hub 上公开创建的仓库名（例如：node-docker）
-  IMAGE_NAME: node-docker
+  IMAGE_NAME: node-docker-alpine
 
 jobs:
   build-and-push:
@@ -23,8 +23,8 @@ jobs:
         uses: actions/checkout@v6
 
       # ─── 核心修改 1：必须引入 QEMU，否则下方的 linux/arm64 编译会直接报错中断 ───
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
