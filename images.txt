@@ -1,9 +1,5 @@
 #emby/embyserver:latest
-#traefik
 #photoprism/photoprism:latest
-#mariadb:10.11
-#docker:29.0.2-dind-alpine3.22
-#docker:29.0.2-alpine3.22
 #kindest/node:v1.35.0
 #kindest/node:v1.31.14
 #kindest/node:v1.34.0
@@ -11,7 +7,5 @@
 #hlohaus789/g4f:latest-slim
 #--platform=linux/arm64 hlohaus789/g4f:latest-slim
 #whohoo/mcp-server-weibo:latest
-#node:22-bookworm-slim
-#gitea/act_runner:latest
 #catthehacker/ubuntu:act-latest
-moby/buildkit:buildx-stable-1
+whohoo/node-docker
