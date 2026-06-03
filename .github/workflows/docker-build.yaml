@@ -70,3 +70,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+      # ─── 放在流水线最后一步：自动同步说明文字 ───
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          # 使用你之前已经配置好的 GitHub Secrets 凭证
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+          # 指定你要更新的 Docker Hub 仓库名
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+
+          # 【可选】一句话简介（限制 100 个字符），可以直接读取你 GitHub 仓库的简介，或者写死
+          short-description: "Multi-arch Node.js images (22/24) with Docker CLI for CI/CD runners (Slim & Alpine)."
+
+          # 【可选】长篇说明文件的路径，默认就是仓库根目录下的 README.md
+          readme-filepath: ./doc/README_NODE_DOCKER.md
