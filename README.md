@@ -113,29 +113,3 @@ xiaoyaliu/alist
 ## 定时执行
 
 修改 `.github/workflows/docker.yaml` 文件中的 `on:` 部分，添加 `schedule` 即可实现自动更新。
-��“公开”，即可直接拉取。
-
-```bash
-# 格式: docker pull [ALIYUN_REGISTRY]/[ALIYUN_NAME_SPACE]/[镜像名]:[标签]
-docker pull registry.cn-hangzhou.aliyuncs.com/shrimp-images/node:22-bookworm-slim
-```
-
----
-
-## 镜像重名处理
-
-如果 `images.txt` 中存在同名但不同命名空间的镜像，例如：
-
-```text
-xhofe/alist
-xiaoyaliu/alist
-```
-
-脚本会自动在阿里云镜像名中添加源命名空间作为前缀，变为：
-
-- `.../xhofe_alist:latest`
-- `.../xiaoyaliu_alist:latest`
-
-## 定时执行
-
-修改 `.github/workflows/docker.yaml` 文件中的 `on:` 部分，添加 `schedule` 即可实现自动更新。

@@ -10,4 +10,5 @@
 #catthehacker/ubuntu:act-latest
 #whohoo/node-docker:24-alpine
 #whohoo/node-docker:24-slim
-whohoo/node-docker:latest
+#whohoo/node-docker:latest
+ghcr.io/anomalyco/opencode:latest
