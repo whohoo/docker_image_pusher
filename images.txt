@@ -13,4 +13,4 @@
 #whohoo/node-docker:latest
 #ghcr.io/anomalyco/opencode:latest
 #ghostfolio/ghostfolio:latest
-ghcr.io/whohoo/ghostfolio:latest
+ghcr.io/whohoo/ghostfolio:ghcr
