@@ -16,5 +16,6 @@
 #ghcr.io/whohoo/ghostfolio:ghcr
 #whohoo/frps:latest
 #whohoo/frpc:latest
-johngong/baidunetdisk:latest
+#johngong/baidunetdisk:latest
+jellyfin/jellyfin:latest
 
