@@ -3,8 +3,7 @@ name: Docker
 on:
   workflow_dispatch:
   push:
-    branches: [ sync ]
-
+    branches: [sync]
 
 env:
   ALIYUN_REGISTRY: "${{ secrets.ALIYUN_REGISTRY }}"
@@ -13,137 +12,140 @@ env:
   ALIYUN_REGISTRY_PASSWORD: "${{ secrets.ALIYUN_REGISTRY_PASSWORD }}"
 
 jobs:
-
   build:
     name: Pull
     runs-on: ubuntu-latest
     steps:
-    - name: Before freeing up disk space
-      run: |
-        echo "Before freeing up disk space"
-        echo "=============================================================================="
-        df -hT
-        echo "=============================================================================="
+      - name: Before freeing up disk space
+        run: |
+          echo "Before freeing up disk space"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
 
-    # 增加可用磁盘空间
-    - name: Maximize build space
-      uses: easimon/maximize-build-space@master
-      with:
+      # 增加可用磁盘空间
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 2048
+          swap-size-mb: 128
+          remove-dotnet: "true"
+          remove-haskell: "true"
+          # 如果空间还是不够用，可以把以下开启，清理出更多空间
+          # remove-android: 'true'
+          # remove-codeql: 'true'
+          build-mount-path: "/var/lib/docker/"
 
-        root-reserve-mb: 2048
-        swap-size-mb: 128
-        remove-dotnet: 'true'
-        remove-haskell: 'true'
-        # 如果空间还是不够用，可以把以下开启，清理出更多空间
-        # remove-android: 'true'
-        # remove-codeql: 'true'
-        build-mount-path: '/var/lib/docker/'
+      - name: Restart docker
+        run: sudo service docker restart
 
-    - name: Restart docker
-      run: sudo service docker restart
+      - name: Free up disk space complete
+        run: |
+          echo "Free up disk space complete"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
 
-    - name: Free up disk space complete
-      run: |
-        echo "Free up disk space complete"
-        echo "=============================================================================="
-        df -hT
-        echo "=============================================================================="
+      - name: Checkout Code
+        uses: actions/checkout@v6
 
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v4
 
-    - name: Docker Setup Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Build and push image Aliyun
+        run: |
+          docker login -u $ALIYUN_REGISTRY_USER -p $ALIYUN_REGISTRY_PASSWORD $ALIYUN_REGISTRY
 
-    - name: Build and push image Aliyun
-      run: |
-        docker login -u $ALIYUN_REGISTRY_USER -p $ALIYUN_REGISTRY_PASSWORD $ALIYUN_REGISTRY
-        
-        while IFS= read -r line || [ -n "$line" ]; do
-            # 忽略空行与注释
-            [[ -z "$line" ]] && continue
-            if echo "$line" | grep -q '^\s*#'; then
-                continue
-            fi
-        
-            echo "Processing line: $line"
-            
-            # 解析 platform
-            platform=""
-            if [[ "$line" == *"--platform="* ]]; then
-                tmp_p="${line#*--platform=}"
-                platform="${tmp_p%% *}"
-                line="${line/--platform=$platform/}"
-            fi
+          while IFS= read -r line || [ -n "$line" ]; do
+              # 忽略空行与注释
+              [[ -z "$line" ]] && continue
+              if echo "$line" | grep -q '^\s*#'; then
+                  continue
+              fi
 
-            # 移除多余空格并解析 source_image 和 target_name
-            line=$(echo "$line" | xargs)
-            read -r source_image target_name <<< "$line"
-            
-            # 清理 source_image (移除 @sha256: 等)
-            source_image="${source_image%%@*}"
-            
-            # 自动生成新镜像名称的逻辑
-            image_name_tag="${source_image##*/}"
-            
-            if [[ -n "$target_name" ]]; then
-                # 如果显式指定了目标名称，则使用它
-                # 检查 target_name 是否包含标签，如果没有则补上源镜像的标签
-                if [[ "$target_name" != *":"* && "$image_name_tag" == *":"* ]]; then
-                    tag="${image_name_tag#*:}"
-                    final_name_tag="$target_name:$tag"
-                else
-                    final_name_tag="$target_name"
-                fi
-            else
-                # 自动生成逻辑
-                if [[ "$source_image" == *"/"* ]]; then
-                    namespace_path="${source_image%/*}"
-                    # 移除域名
-                    first_part="${namespace_path%%/*}"
-                    if [[ "$first_part" == *"."* ]]; then
-                        namespace_no_domain="${namespace_path#*/}"
-                    else
-                        namespace_no_domain="$namespace_path"
-                    fi
-                    
-                    # 判断是否为官方镜像
-                    if [[ "$namespace_path" == "docker.io/library" || "$namespace_path" == "library" || "$namespace_no_domain" == "library" ]]; then
-                        final_name_tag="$image_name_tag"
-                    else
-                        # 处理第三方镜像，将命名空间路径转换为前缀
-                        namespace_prefix="${namespace_no_domain//\//_}"
-                        if [[ -n "$namespace_prefix" && "$namespace_prefix" != "$namespace_path" ]]; then
-                             final_name_tag="${namespace_prefix}_${image_name_tag}"
-                        elif [[ "$first_part" == *"."* && "$namespace_path" == "$first_part" ]]; then
-                             # 只有域名的情况 (例如 gcr.io/pause)
-                             final_name_tag="$image_name_tag"
-                        else
-                             final_name_tag="${namespace_path//\//_}_${image_name_tag}"
-                        fi
-                    fi
-                else
-                    # 官方镜像 (无命名空间)
-                    final_name_tag="$image_name_tag"
-                fi
-            fi
-            
-            new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$final_name_tag"
-            
-            if [ -z "$platform" ]; then
-                echo "Syncing ALL platforms: $source_image -> $new_image"
-                docker buildx imagetools create -t "$new_image" "$source_image"
-            else
-                echo "Syncing specific platforms [$platform]: $source_image -> $new_image"
-                echo "FROM $source_image" | docker buildx build --platform "$platform" -t "$new_image" --push -
-            fi
+              echo "Processing line: $line"
+              
+              # 解析 platform
+              platform=""
+              if [[ "$line" == *"--platform="* ]]; then
+                  tmp_p="${line#*--platform=}"
+                  platform="${tmp_p%% *}"
+                  line="${line/--platform=$platform/}"
+              fi
 
-            echo "开始清理磁盘空间"
-            echo "=============================================================================="
-            # 清理 Buildx 缓存
-            docker buildx prune -f
-            docker image prune -a -f
-            echo "磁盘空间清理完毕"
-            echo "=============================================================================="     
-            
-        done < images.txt
+              # 移除多余空格并解析 source_image 和 target_name
+              line=$(echo "$line" | xargs)
+              read -r source_image target_name <<< "$line"
+              
+              # 清理 source_image (移除 @sha256: 等)
+              source_image="${source_image%%@*}"
+              
+              # 自动生成新镜像名称的逻辑
+              image_name_tag="${source_image##*/}"
+              
+              if [[ -n "$target_name" ]]; then
+                  # 如果显式指定了目标名称，则使用它
+                  # 检查 target_name 是否包含标签，如果没有则补上源镜像的标签
+                  if [[ "$target_name" != *":"* && "$image_name_tag" == *":"* ]]; then
+                      tag="${image_name_tag#*:}"
+                      final_name_tag="$target_name:$tag"
+                  else
+                      final_name_tag="$target_name"
+                  fi
+              else
+                  # 自动生成逻辑
+                  if [[ "$source_image" == *"/"* ]]; then
+                      namespace_path="${source_image%/*}"
+                      # 移除域名
+                      first_part="${namespace_path%%/*}"
+                      if [[ "$first_part" == *"."* ]]; then
+                          namespace_no_domain="${namespace_path#*/}"
+                      else
+                          namespace_no_domain="$namespace_path"
+                      fi
+                      
+                      # 判断是否为官方镜像
+                      if [[ "$namespace_path" == "docker.io/library" || "$namespace_path" == "library" || "$namespace_no_domain" == "library" ]]; then
+                          final_name_tag="$image_name_tag"
+                      else
+                          # 处理第三方镜像，将命名空间路径转换为前缀
+                          namespace_prefix="${namespace_no_domain//\//_}"
+                          if [[ -n "$namespace_prefix" && "$namespace_prefix" != "$namespace_path" ]]; then
+                               final_name_tag="${namespace_prefix}_${image_name_tag}"
+                          elif [[ "$first_part" == *"."* && "$namespace_path" == "$first_part" ]]; then
+                               # 只有域名的情况 (例如 gcr.io/pause)
+                               final_name_tag="$image_name_tag"
+                          else
+                               final_name_tag="${namespace_path//\//_}_${image_name_tag}"
+                          fi
+                      fi
+                  else
+                      # 官方镜像 (无命名空间)
+                      final_name_tag="$image_name_tag"
+                  fi
+              fi
+              
+              new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$final_name_tag"
+              
+              if [ -z "$platform" ]; then
+                  echo "Syncing ALL platforms: $source_image -> $new_image"
+                  docker buildx imagetools create -t "$new_image" "$source_image"
+              else
+                  echo "Syncing specific platforms [$platform]: $source_image -> $new_image"
+                  # 复用 GitHub Actions 缓存，避免重复同步同一镜像时重新拉取层
+                  # ACR 不支持 attestation 清单，关闭 provenance/sbom
+                  echo "FROM $source_image" | docker buildx build --platform "$platform" \
+                      --cache-from=type=gha --cache-to=type=gha,mode=max \
+                      --provenance=false --sbom=false \
+                      -t "$new_image" --push -
+              fi
+
+              echo "开始清理磁盘空间"
+              echo "=============================================================================="
+              # 清理 Buildx 缓存
+              docker buildx prune -f
+              docker image prune -a -f
+              echo "磁盘空间清理完毕"
+              echo "=============================================================================="     
+              
+          done < images.txt

@@ -8,10 +8,6 @@
 - **超大镜像**：支持最大 40GB 的大型镜像同步。
 - **自定义镜像构建**：内置 Node.js + Docker CLI 镜像构建流水线，支持多版本（22/24）与多架构（AMD64/ARM64）。
 
-[视频教程：](https://www.bilibili.com/video/BV1Zn4y19743/)
-
-作者：**[技术爬爬虾](https://github.com/tech-shrimp/me)**
-
 ---
 
 ## 使用方式
@@ -91,7 +87,7 @@ gcr.io/kaniko-project/executor:latest
 
 ```bash
 # 格式: docker pull [ALIYUN_REGISTRY]/[ALIYUN_NAME_SPACE]/[镜像名]:[标签]
-docker pull registry.cn-hangzhou.aliyuncs.com/shrimp-images/node:22-bookworm-slim
+docker pull registry.cn-hangzhou.aliyuncs.com/docker-wa/node:22-bookworm-slim
 ```
 
 ---
