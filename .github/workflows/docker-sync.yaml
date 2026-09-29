@@ -77,11 +77,12 @@ jobs:
               line=$(echo "$line" | xargs)
               read -r source_image target_name <<< "$line"
               
-              # 清理 source_image (移除 @sha256: 等)
-              source_image="${source_image%%@*}"
-              
+              # source_image 保留 @sha256: digest，用于精确拉取指定版本
+              # image_name 是去掉 digest 的部分，仅用于生成目标镜像名称
+              image_name="${source_image%%@*}"
+
               # 自动生成新镜像名称的逻辑
-              image_name_tag="${source_image##*/}"
+              image_name_tag="${image_name##*/}"
               
               if [[ -n "$target_name" ]]; then
                   # 如果显式指定了目标名称，则使用它
@@ -94,8 +95,8 @@ jobs:
                   fi
               else
                   # 自动生成逻辑
-                  if [[ "$source_image" == *"/"* ]]; then
-                      namespace_path="${source_image%/*}"
+                  if [[ "$image_name" == *"/"* ]]; then
+                      namespace_path="${image_name%/*}"
                       # 移除域名
                       first_part="${namespace_path%%/*}"
                       if [[ "$first_part" == *"."* ]]; then
@@ -128,8 +129,28 @@ jobs:
               new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$final_name_tag"
               
               if [ -z "$platform" ]; then
-                  echo "Syncing ALL platforms: $source_image -> $new_image"
-                  docker buildx imagetools create -t "$new_image" "$source_image"
+                  # ACR 不接受 attestation manifest：它的 config mediaType 是
+                  # application/vnd.oci.empty.v1+json，ACR 会以
+                  # "unknown manifest class" 403 拒绝整个 index。
+                  # 所以先把 index 里的 attestation 条目剔掉，再按 digest 重建 index。
+                  # image_name 已去掉源 digest，可安全拼接子 manifest 的 digest
+                  mapfile -t src_refs < <(
+                      docker buildx imagetools inspect --raw "$source_image" |
+                          jq -r '.manifests[]?
+                                 | select((.annotations["vnd.docker.reference.type"] // "") != "attestation-manifest")
+                                 | .digest' |
+                          sed "s|^|${image_name}@|"
+                  )
+
+                  if [ ${#src_refs[@]} -gt 0 ]; then
+                      echo "Syncing (attestation filtered, ${#src_refs[@]} manifest(s)): $new_image"
+                      printf '  - %s\n' "${src_refs[@]}"
+                      docker buildx imagetools create -t "$new_image" "${src_refs[@]}"
+                  else
+                      # 非多架构 index（或 inspect 失败），退化为整体复制
+                      echo "Syncing ALL platforms: $source_image -> $new_image"
+                      docker buildx imagetools create -t "$new_image" "$source_image"
+                  fi
               else
                   echo "Syncing specific platforms [$platform]: $source_image -> $new_image"
                   # 复用 GitHub Actions 缓存，避免重复同步同一镜像时重新拉取层

@@ -37,6 +37,7 @@
 
 - **默认全量同步**：直接写镜像名，会同步该 Tag 下的所有平台架构。
 - **指定平台同步**：使用 `--platform` 参数限制同步的架构（多个用逗号隔开）。
+- **锁定版本**：在镜像名后加 `@sha256:<digest>`，会按该摘要精确同步（Tag 后续更新也不会影响）。
 - **注释**：使用 `#` 开头。
 
 **示例：**
@@ -50,6 +51,9 @@ nginx:latest
 
 # 同步特定私库镜像
 gcr.io/kaniko-project/executor:latest
+
+# 按摘要锁定版本 (目标镜像名仍为 valkey_valkey:9)
+docker.io/valkey/valkey:9@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9
 ```
 
 文件提交后，将自动触发同步流程。
@@ -78,6 +82,7 @@ gcr.io/kaniko-project/executor:latest
 
 - **平台不存在**：如果指定的平台在源仓库中不存在，脚本会**报错并停止执行**。
 - **部分存在**：如果你指定了多个平台（如 `amd64,arm64`），但源仓库只存在其中一个，脚本同样会**报错退出**，不会部分同步。
+- **`403 unknown manifest class for application/vnd.oci.empty.v1+json`**：源镜像带有 attestation 清单（provenance / SBOM）时会出现。阿里云 ACR 无法识别这类清单，会拒绝整个镜像索引。脚本已内置处理：同步前会自动剔除 attestation 条目，再用剩余的各架构 manifest 重建索引。因此**同步到 ACR 的镜像不携带 provenance / SBOM 证明**，这属于预期行为。
 
 ---
 
