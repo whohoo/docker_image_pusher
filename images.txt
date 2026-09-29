@@ -17,5 +17,6 @@
 #whohoo/frps:latest
 #whohoo/frpc:latest
 #johngong/baidunetdisk:latest
-jellyfin/jellyfin:latest
+#jellyfin/jellyfin:latest
+ghcr.io/immich-app/immich-server:v3
 
