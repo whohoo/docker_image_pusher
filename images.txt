@@ -18,6 +18,6 @@
 #whohoo/frpc:latest
 #johngong/baidunetdisk:latest
 #jellyfin/jellyfin:latest
-ghcr.io/immich-app/immich-server:v3
+--platform=auto ghcr.io/immich-app/immich-server:v3
 docker.io/valkey/valkey:9@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9
 

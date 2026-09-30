@@ -36,7 +36,7 @@
 打开 `images.txt` 文件，添加你想要的镜像。
 
 - **默认全量同步**：直接写镜像名，会同步该 Tag 下的所有平台架构。
-- **指定平台同步**：使用 `--platform` 参数限制同步的架构（多个用逗号隔开）。
+- **指定平台同步**：使用 `--platform` 参数限制同步的架构（多个用逗号隔开）。写成 `--platform=auto` 则自动从源镜像推导全部平台。
 - **锁定版本**：在镜像名后加 `@sha256:<digest>`，会按该摘要精确同步（Tag 后续更新也不会影响）。
 - **注释**：使用 `#` 开头。
 
@@ -48,6 +48,9 @@ nginx:latest
 
 # 只同步指定的架构
 --platform=linux/amd64,linux/arm64 node:22-bookworm-slim
+
+# 自动推导源镜像的全部平台 (等价于上面的写法，但不用自己查)
+--platform=auto ghcr.io/immich-app/immich-server:v3
 
 # 同步特定私库镜像
 gcr.io/kaniko-project/executor:latest
@@ -83,6 +86,7 @@ docker.io/valkey/valkey:9@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056
 - **平台不存在**：如果指定的平台在源仓库中不存在，脚本会**报错并停止执行**。
 - **部分存在**：如果你指定了多个平台（如 `amd64,arm64`），但源仓库只存在其中一个，脚本同样会**报错退出**，不会部分同步。
 - **`403 unknown manifest class for application/vnd.oci.empty.v1+json`**：源镜像带有 attestation 清单（provenance / SBOM）时会出现。阿里云 ACR 无法识别这类清单，会拒绝整个镜像索引。脚本已内置处理：同步前会自动剔除 attestation 条目，再用剩余的各架构 manifest 重建索引。因此**同步到 ACR 的镜像不携带 provenance / SBOM 证明**，这属于预期行为。
+- **`stream error: stream ID N; PROTOCOL_ERROR; received from peer`**：ACR 边缘网关的 HTTP/2 实现问题，与镜像内容无关，表现为一个 layer 都没传就失败。目前没有可靠的自动规避手段，**把该镜像改成 `--platform=auto` 即可**——这会走重新构建推送的通路（`--provenance=false --sbom=false`），绕开 `imagetools create` 的传输路径。代价是要从源仓库下载全部层再推一次，单个大镜像约 5-15 分钟。
 
 ---
 

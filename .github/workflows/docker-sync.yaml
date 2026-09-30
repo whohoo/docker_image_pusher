@@ -127,7 +127,23 @@ jobs:
               fi
               
               new_image="$ALIYUN_REGISTRY/$ALIYUN_NAME_SPACE/$final_name_tag"
-              
+
+              # --platform=auto: 从源 index 自动推导平台列表（跳过 attestation 条目）
+              if [ "$platform" = "auto" ]; then
+                  platform=$(docker buildx imagetools inspect --raw "$source_image" |
+                      jq -r '[.manifests[]?
+                             | select((.annotations["vnd.docker.reference.type"] // "") != "attestation-manifest")
+                             | "\(.platform.os)/\(.platform.architecture)\(if .platform.variant then "/" + .platform.variant else "" end)"]
+                           | unique | join(",")')
+                  if [ -z "$platform" ]; then
+                      # 单架构镜像或无法解析 index，退回 manifest 复制通路
+                      echo "WARN: 无法从 $source_image 推导平台列表，回退到 manifest 复制"
+                      platform=""
+                  else
+                      echo "Auto-detected platforms: $platform"
+                  fi
+              fi
+
               if [ -z "$platform" ]; then
                   # ACR 不接受 attestation manifest：它的 config mediaType 是
                   # application/vnd.oci.empty.v1+json，ACR 会以
